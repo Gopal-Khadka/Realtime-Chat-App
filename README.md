@@ -10,6 +10,8 @@
     - [Under the Hood of Our Project](#under-the-hood-of-our-project)
 
 
+**Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
+
 ## Concepts
 ### Synchronous Web Servers (WSGI)
 WSGI is a specification that defines a simple and universal interface between web servers and Python web applications or frameworks. It is designed for synchronous applications, meaning that each request is handled one at a time. Here are some key points about WSGI:

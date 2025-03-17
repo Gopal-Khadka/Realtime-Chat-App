@@ -17,9 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from a_users.views import profile_view
 
 urlpatterns = [
-    path("account/", include("allauth.urls")),
+    path("accounts/", include("allauth.urls")),
     path("admin/", admin.site.urls),
-    path("chat/", include("chat_site.urls")),
+    path("", include("chat_site.urls")),
+    path("profile/", include("a_users.urls")),
+    path("@<username>/", profile_view),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

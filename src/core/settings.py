@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     # "django.contrib.sites",
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
     # my apps
+    "a_users",
     "chat_site",
 ]
 

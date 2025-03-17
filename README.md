@@ -7,6 +7,7 @@
       - [Key Concepts of WebSockets](#key-concepts-of-websockets)
       - [Use Cases for WebSockets](#use-cases-for-websockets)
       - [Comparison with Other Technologies](#comparison-with-other-technologies)
+    - [Under the Hood of Our Project](#under-the-hood-of-our-project)
 
 
 ## Concepts
@@ -72,3 +73,13 @@ WebSockets are particularly useful in scenarios where real-time communication is
 - **Long Polling**: Long polling is a technique where the client requests information from the server, and the server holds the request open until new data is available. While this reduces the number of requests compared to regular polling, it still involves more overhead than WebSockets.
 
 - **Server-Sent Events (SSE)**: SSE is a one-way communication method where the server can push updates to the client. However, it does not allow the client to send messages back to the server, making it less versatile than WebSockets for interactive applications.
+
+### Under the Hood of Our Project
+First when browser requests our chat page, it initiates the standard HTTP request to the server. Once the page is loaded, HTMX code implemented in the web page triggers another htmx request(this time requesting websockets connection). After receiving the request, server initiates **handshake** with client and the connection is officially upgraded to **websockets** enabling async communication between browser and server using **django channels**. Django channel is unique for each individual user and creates one to one connection between server and browser. However in order to send and receive among many users, we have to upgrade again and add **channel** layer.   
+
+This channel layer can add each individual channel  to a group where messages which are sent to this group. To facilitate communication, we need in-memory data storage which manages communication between all different parts. For dev purposes , we can use inbilt data store provided by **django channels**. However, for production, **Redis** can be used with in-memory data store and caching making data storage and easing communication. This database doesn't replace our **Postgres/SQLite DB** but work alongside it and complement each other.
+That's our chat app in the nutshell.
+
+![Infrastructure](src/images/infrastructure.png)
+
+

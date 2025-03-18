@@ -26,8 +26,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("chat_site.urls")),
     path("profile/", include("a_users.urls")),
-    path("@<username>/", profile_view),
+    path("@<username>/", profile_view,name="profile"),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

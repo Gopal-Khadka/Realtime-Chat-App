@@ -8,6 +8,14 @@
       - [Use Cases for WebSockets](#use-cases-for-websockets)
       - [Comparison with Other Technologies](#comparison-with-other-technologies)
     - [Under the Hood of Our Project](#under-the-hood-of-our-project)
+    - [Daphne](#daphne)
+    - [Routing](#routing)
+      - [Key Points about Routing:](#key-points-about-routing)
+      - [Example of Routing:](#example-of-routing)
+    - [Consumers](#consumers)
+      - [Key Points about Consumers:](#key-points-about-consumers)
+      - [Example of a Consumer:](#example-of-a-consumer)
+      - [Summary](#summary)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -84,4 +92,109 @@ That's our chat app in the nutshell.
 
 ![Infrastructure](src/images/infrastructure.png)
 
+### Daphne
 
+Daphne is a pure-Python ASGI server designed for handling HTTP, HTTP2, and WebSocket protocols, primarily used with Django Channels. It serves as the reference server for ASGI, enabling asynchronous capabilities in Django applications, particularly for real-time features like chat and notifications.
+
+
+
+Django Channels extends Django's capabilities to handle asynchronous protocols, such as WebSockets, allowing for real-time communication in web applications. Two key concepts in Django Channels are **routing** and **consumers**. Let's break down each concept:
+
+### Routing
+
+**Routing** in Django Channels is similar to URL routing in traditional Django applications, but it is specifically designed for handling different types of connections (like HTTP and WebSocket). Routing determines how incoming connections are handled and directs them to the appropriate consumer.
+
+#### Key Points about Routing:
+
+- **Protocol Type**: Routing can differentiate between different types of protocols, such as HTTP and WebSocket. This is done using the `ProtocolTypeRouter`, which allows you to define how to handle different types of requests.
+
+- **URL Patterns**: Just like Django's URL dispatcher, you define URL patterns for WebSocket connections. These patterns are typically defined using regular expressions or path converters.
+
+- **URLRouter**: The `URLRouter` is used to match incoming WebSocket connections to specific consumers based on the URL patterns defined.
+
+#### Example of Routing:
+
+In your `routing.py` file, you might have something like this:
+
+```python
+from django.urls import re_path
+from . import consumers
+
+websocket_urlpatterns = [
+    re_path(r'ws/chat/(?P<room_name>\w+)/$', consumers.ChatConsumer.as_asgi()),
+]
+```
+
+In this example, any WebSocket connection to a URL matching `ws/chat/<room_name>/` will be routed to the `ChatConsumer`.
+
+### Consumers
+
+**Consumers** are the core components in Django Channels that handle WebSocket connections. They are similar to Django views but are designed to handle asynchronous events. Consumers manage the lifecycle of a WebSocket connection, including connecting, disconnecting, and receiving/sending messages.
+
+#### Key Points about Consumers:
+
+- **Asynchronous**: Consumers are typically asynchronous, allowing them to handle multiple connections simultaneously without blocking the server. This is crucial for real-time applications where many users may be connected at once.
+
+- **Lifecycle Methods**: Consumers have several important methods:
+  - `connect()`: Called when a WebSocket connection is established. You can accept the connection here.
+  - `disconnect()`: Called when the WebSocket connection is closed. You can clean up resources here.
+  - `receive()`: Called when a message is received from the WebSocket. You can process the message and respond accordingly.
+  - Custom methods can be defined to handle specific types of messages.
+
+#### Example of a Consumer:
+
+Here’s a simple example of a WebSocket consumer:
+
+```python
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'chat_{self.room_name}'
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+
+        # Send message to room group
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message
+            }
+        )
+
+    async def chat_message(self, event):
+        message = event['message']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'message': message
+        }))
+```
+
+#### Summary
+
+- **Routing**: Defines how incoming WebSocket connections are matched to consumers based on URL patterns. It allows you to specify which consumer should handle a particular WebSocket connection.
+
+- **Consumers**: Handle the actual logic for WebSocket connections. They manage the connection lifecycle, process incoming messages, and send messages back to clients. Consumers are asynchronous, allowing for efficient handling of multiple connections.
+
+Together, routing and consumers enable Django Channels to provide real-time capabilities, making it possible to build applications like chat systems, live notifications, and collaborative tools.

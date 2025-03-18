@@ -32,6 +32,7 @@ CSRF_TRUSTED_ORIGINS = ["https://*"]
 # Application definition
 # SITE_ID = 1 # Refer to django.contrib.sites module
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -40,7 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_cleanup.apps.CleanupConfig",
     "django_htmx",
-    # "django.contrib.sites",
+    # "django.contrib.sites", # for sub domains
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -84,7 +85,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "core.wsgi.application"
+# WSGI_APPLICATION = "core.wsgi.application"
+ASGI_APPLICATION = "core.asgi.application"
 
 
 # Database

@@ -62,12 +62,8 @@
     <div class="sticky bottom-0 z-10 p-2 bg-gray-800">
       <div class="flex items-center rounded-xl px-2 py-2">
         <form id="chat_message_form" method="POST" class="w-full">
-          <input
-            type="text"
-            name="message"
-            placeholder="Add message ..."
-            maxlength="150"
-          />
+          {% csrf_token %}
+          {{form}}
         </form>
       </div>
     </div>

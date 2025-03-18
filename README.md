@@ -16,6 +16,13 @@
       - [Key Points about Consumers:](#key-points-about-consumers)
       - [Example of a Consumer:](#example-of-a-consumer)
       - [Summary](#summary)
+    - [Channels vs Channel Layers](#channels-vs-channel-layers)
+      - [Channels](#channels)
+        - [Key Points about Channels:](#key-points-about-channels)
+      - [Channel Layers](#channel-layers)
+        - [Key Points about Channel Layers:](#key-points-about-channel-layers)
+      - [Summary of Differences](#summary-of-differences)
+      - [Example Scenario](#example-scenario)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -198,3 +205,56 @@ class ChatConsumer(AsyncWebsocketConsumer):
 - **Consumers**: Handle the actual logic for WebSocket connections. They manage the connection lifecycle, process incoming messages, and send messages back to clients. Consumers are asynchronous, allowing for efficient handling of multiple connections.
 
 Together, routing and consumers enable Django Channels to provide real-time capabilities, making it possible to build applications like chat systems, live notifications, and collaborative tools.
+
+
+### Channels vs Channel Layers
+
+#### Channels
+
+**Channels** are the basic building blocks of Django Channels. A channel is essentially a communication pathway that allows different parts of your application to send and receive messages. Channels can be thought of as a queue where messages can be sent and received asynchronously.
+
+##### Key Points about Channels:
+
+- **Asynchronous Communication**: Channels allow different parts of your application (like consumers, views, or background tasks) to communicate with each other without blocking the main thread. This is crucial for real-time applications where you want to handle multiple connections simultaneously.
+
+- **Message Passing**: You can send messages to a channel, and those messages can be processed by any consumer or worker that is listening to that channel.
+
+- **Channel Names**: Each channel has a unique name, which is used to identify it when sending or receiving messages.
+
+- **Example Usage**: In a chat application, you might have a channel for each chat room. When a user sends a message, it is sent to the corresponding channel, and all consumers listening to that channel can receive the message.
+
+#### Channel Layers
+
+**Channel layers** provide a way to communicate between different instances of your application, especially when you have multiple processes or servers running. They act as a communication layer that allows channels to send messages across different instances of your application.
+
+##### Key Points about Channel Layers:
+
+- **Backend for Channels**: Channel layers are essentially a backend for channels. They allow you to use channels across different processes, making it possible to scale your application horizontally (i.e., running multiple instances of your application).
+
+- **Support for Multiple Backends**: Django Channels supports different backends for channel layers, such as:
+  - **In-Memory Layer**: Useful for development and testing, but not suitable for production because it does not share state between processes.
+  - **Redis Layer**: A popular choice for production, allowing multiple instances of your application to communicate with each other through Redis.
+  - **Database Layer**: You can also implement a database-backed channel layer, though this is less common.
+
+- **Group Communication**: Channel layers allow you to create groups of channels. You can send messages to all channels in a group, which is useful for broadcasting messages to multiple consumers (e.g., notifying all users in a chat room).
+
+#### Summary of Differences
+
+| Feature        | Channels                                                                       | Channel Layers                                                                    |
+| -------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| **Definition** | A communication pathway for sending messages.                                  | A backend that enables communication between channels across different processes. |
+| **Scope**      | Operates within a single process.                                              | Operates across multiple processes or servers.                                    |
+| **Use Case**   | Used for direct message passing between consumers or parts of the application. | Used for scaling applications and enabling inter-process communication.           |
+| **Examples**   | Sending a message to a specific channel.                                       | Using Redis to allow multiple instances of a chat application to communicate.     |
+
+#### Example Scenario
+
+Consider a chat application:
+
+- **Channels**: Each chat room has its own channel. When a user sends a message, it is sent to the channel corresponding to that chat room.
+
+- **Channel Layers**: If your chat application is running on multiple servers (for load balancing), channel layers (like Redis) allow all instances of the application to communicate. When a message is sent to a channel in one instance, it can be received by consumers in other instances, ensuring that all users in the chat room receive the message regardless of which server they are connected to.
+
+In summary, [channels](https://channels.readthedocs.io/en/latest/introduction.html#turtles-all-the-way-down) are the *individual* pathways for message passing, while [channel layers](https://channels.readthedocs.io/en/latest/topics/channel_layers.html#) provide the infrastructure to enable those channels to communicate across different instances of your application.
+
+**Note:** Channel layers is asynchronous code which needs the usage of `async/await` keyword and must inherit from `AsyncWebSocket` class. To avoid this, we can use `asgiref.sync.async_to_sync` method.

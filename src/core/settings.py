@@ -88,6 +88,14 @@ TEMPLATES = [
 # WSGI_APPLICATION = "core.wsgi.application"
 ASGI_APPLICATION = "core.asgi.application"
 
+# Channels layers config
+# https://channels.readthedocs.io/en/latest/topics/channel_layers.html#in-memory-channel-layer
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

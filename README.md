@@ -8,6 +8,13 @@
       - [Use Cases for WebSockets](#use-cases-for-websockets)
       - [Comparison with Other Technologies](#comparison-with-other-technologies)
     - [Under the Hood of Our Project](#under-the-hood-of-our-project)
+    - [Scope](#scope)
+      - [Key Points about Scope:](#key-points-about-scope)
+      - [Example of Scope Usage:](#example-of-scope-usage)
+    - [Events](#events)
+      - [Key Points about Events:](#key-points-about-events)
+      - [Example of Event Handling:](#example-of-event-handling)
+      - [Summary](#summary)
     - [Daphne](#daphne)
     - [Routing](#routing)
       - [Key Points about Routing:](#key-points-about-routing)
@@ -15,7 +22,7 @@
     - [Consumers](#consumers)
       - [Key Points about Consumers:](#key-points-about-consumers)
       - [Example of a Consumer:](#example-of-a-consumer)
-      - [Summary](#summary)
+      - [Summary](#summary-1)
     - [Channels vs Channel Layers](#channels-vs-channel-layers)
       - [Channels](#channels)
         - [Key Points about Channels:](#key-points-about-channels)
@@ -24,6 +31,10 @@
       - [Summary of Differences](#summary-of-differences)
       - [Example Scenario](#example-scenario)
     - [Tracking Online People in Channels Layer](#tracking-online-people-in-channels-layer)
+    - [Redis](#redis)
+      - [Key Features of Redis in Django Channels](#key-features-of-redis-in-django-channels)
+      - [Use Cases](#use-cases)
+      - [Alternatives of Redis](#alternatives-of-redis)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -99,6 +110,78 @@ This channel layer can add each individual channel  to a group where messages wh
 That's our chat app in the nutshell.
 
 ![Infrastructure](src/images/infrastructure.png)
+
+
+
+
+### Scope
+
+**Scope** is a dictionary-like object that contains information about the current connection and its context. It is similar to the request object in traditional Django views but is designed for asynchronous operations. The scope is available in consumers and provides essential details about the connection, such as the user, the type of connection, and any relevant URL parameters.
+
+#### Key Points about Scope:
+
+1. **Connection Context**: The scope contains information specific to the current connection, including:
+   - `type`: The type of connection (e.g., `http`, `websocket`, etc.).
+   - `user`: The authenticated user associated with the connection (if any).
+   - `path`: The URL path of the connection.
+   - `headers`: The headers sent with the connection request.
+   - `query_string`: The query string of the URL.
+   - `url_route`: A dictionary containing URL parameters extracted from the routing configuration.
+
+2. **Accessing Scope**: In a consumer, you can access the scope using `self.scope`. This allows you to retrieve information about the connection and make decisions based on that context.
+
+3. **Lifecycle**: The scope is created when a connection is established and is available throughout the lifecycle of that connection. It is passed to the consumer when the connection is accepted.
+
+#### Example of Scope Usage:
+
+In a WebSocket consumer, you might access the scope like this:
+
+```python
+class ChatConsumer(WebsocketConsumer):
+    def connect(self):
+        self.user = self.scope["user"]  # Get the authenticated user
+        self.chatroom_name = self.scope["url_route"]["kwargs"]["chatroom_name"]  # Get chatroom name from URL
+```
+
+### Events
+
+**Events** in Django Channels refer to messages or signals that are sent between different parts of the application, particularly between consumers and the channel layer. Events are used to trigger actions or communicate state changes, such as sending messages, updating user counts, or notifying clients of changes.
+
+#### Key Points about Events:
+
+1. **Event Types**: Events are typically defined by a `type` key, which indicates what kind of event it is. For example, you might have events for:
+   - Sending a message (`"type": "chat_message"`)
+   - Updating the online user count (`"type": "online_user_count"`)
+   - Handling a user joining or leaving a chatroom.
+
+2. **Sending Events**: Events can be sent using the channel layer, allowing different consumers or parts of the application to communicate. For example, you can send an event to a group of consumers to notify them of a new message or a change in state.
+
+3. **Handling Events**: Consumers can define methods to handle specific types of events. When an event is received, the corresponding method is called to process the event and take appropriate action.
+
+#### Example of Event Handling:
+
+In a consumer, you might handle an event like this:
+
+```python
+class ChatConsumer(WebsocketConsumer):
+    def receive(self, text_data):
+        # Process incoming message
+        event = {"type": "chat_message", "message": "Hello, world!"}
+        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
+
+    def chat_message(self, event):
+        # Handle the chat message event
+        message = event["message"]
+        self.send(text_data=json.dumps({"message": message}))
+```
+
+#### Summary
+
+- **Scope**: A dictionary-like object that provides context about the current connection, including user information, URL parameters, and headers. It is accessible in consumers and is crucial for managing the connection's lifecycle.
+
+- **Events**: Messages or signals that facilitate communication between different parts of the application. Events are used to trigger actions and can be sent and handled by consumers to manage real-time interactions.
+
+Together, scope and events enable Django Channels to provide a robust framework for building real-time applications, allowing for efficient communication and context management in asynchronous environments.
 
 ### Daphne
 
@@ -265,3 +348,90 @@ In summary, [channels](https://channels.readthedocs.io/en/latest/introduction.ht
 To do this, we have to count how many channels are there in channel layer. As we are using `in-built channel layer` (for now), we can't do this directly with channels layer object unfortunately.
 
 So without using `Redis`, we would have to do it manually in `consumers.py`. So we add new field `users_online` in `ChatGroup` model to track them.
+
+Using `Redis`, you can do use `cache` to do following:
+```python
+import json
+from asgiref.sync import async_to_sync
+from channels.generic.websocket import WebsocketConsumer
+from django.core.cache import cache
+
+class ChatroomConsumer(WebsocketConsumer):
+    def connect(self):
+        self.user = self.scope["user"]
+        self.chatroom_name = self.scope["url_route"]["kwargs"]["chatroom_name"]
+
+        # Increment online user count in Redis
+        cache.incr(f"online_users:{self.chatroom_name}")
+
+        # Add the user to the chatroom group
+        async_to_sync(self.channel_layer.group_add)(
+            self.chatroom_name, self.channel_name
+        )
+        self.accept()
+
+        # Send updated online user count
+        self.send_online_user_count()
+
+    def disconnect(self, code):
+        # Decrement online user count in Redis
+        cache.decr(f"online_users:{self.chatroom_name}")
+
+        async_to_sync(self.channel_layer.group_discard)(
+            self.chatroom_name, self.channel_name
+        )
+
+        # Send updated online user count
+        self.send_online_user_count()
+
+    def send_online_user_count(self):
+        count = cache.get(f"online_users:{self.chatroom_name}", 0)
+        event = {"type": "online_user_count", "count": count}
+        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
+
+    def online_user_count(self, event):
+        count = event["count"]
+        self.send(text_data=json.dumps({"online_user_count": count}))
+```
+
+
+### Redis
+
+Redis serves as a channel layer backend in Django Channels, enabling communication between different instances of consumers. It facilitates message passing and state sharing, allowing for real-time interactions in applications by managing connections and broadcasting messages efficiently across multiple clients. 
+
+#### Key Features of Redis in Django Channels
+
+- **Message Broker**: Redis acts as a message broker, allowing different parts of the application to communicate without direct connections. This decouples components and enhances scalability.
+
+- **Asynchronous Communication**: Redis supports asynchronous message passing, which is essential for real-time applications. It allows consumers to send and receive messages without blocking operations.
+
+- **Group Management**: Redis enables the creation of groups, allowing messages to be broadcasted to multiple consumers simultaneously. This is particularly useful in scenarios like chat applications where messages need to be sent to all participants.
+
+- **Persistence and Reliability**: Redis can be configured to persist messages, ensuring that they are not lost in case of failures. This adds a layer of reliability to the messaging system.
+
+- **Scalability**: By using Redis, Django Channels can scale horizontally. Multiple instances of the application can connect to the same Redis server, allowing for load balancing and efficient resource utilization.
+
+- **Pub/Sub Mechanism**: Redis supports a publish/subscribe model, which allows messages to be sent to multiple subscribers. This is beneficial for real-time updates and notifications.
+
+
+#### Use Cases
+
+- **Chat Applications**: Redis is ideal for chat applications where messages need to be sent to multiple users in real-time.
+
+- **Live Notifications**: Applications that require live updates, such as notifications for new content or changes in state, can leverage Redis for efficient message delivery.
+
+- **Collaborative Tools**: Tools that involve multiple users interacting simultaneously can benefit from Redis's ability to manage state and broadcast messages effectively.
+
+In summary, Redis enhances the capabilities of Django Channels by providing a robust, scalable, and efficient messaging system that supports real-time communication in web applications.
+
+![Redis in Channels](src/images/redis-in-channels.png)
+![Redis vs Postgres](src/images/redis-vs-postgres.png)
+
+
+#### Alternatives of Redis
+1. **Valkey**: an open-source fork of Redis that has gained traction due to its backing by major tech companies and the Linux Foundation. It boasts enhanced performance through multi-threading for both input/output and command execution, achieving impressive throughput levels. With features like experimental Remote Direct Memory Access (RDMA) support, Valkey aims to significantly boost query performance and reduce latency, making it a compelling choice for developers seeking a robust alternative to Redis.
+
+2. KeyDB: a multi-threaded fork of Redis designed for high performance and scalability. It can handle over 1 million operations per second on a single node, making it suitable for demanding applications. KeyDB supports advanced features such as Active Replica and Multi-Master modes, which enhance data availability and reliability. Its compatibility with Redis commands facilitates easier migration for users transitioning from Redis, positioning KeyDB as a strong contender in the in-memory database landscape.
+
+
+3. Garnet: an open-source cache store developed by Microsoft Research, aimed at providing high performance for modern applications. It is designed to deliver superior throughput and low latency, making it ideal for applications with demanding data access requirements. Garnet maintains full compatibility with existing Redis clients and commands, allowing for seamless integration. Although still in its early stages, the support from Microsoft suggests a promising future for Garnet as a viable alternative to Redis.

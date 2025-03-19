@@ -36,6 +36,7 @@
       - [Use Cases](#use-cases)
       - [Alternatives of Redis](#alternatives-of-redis)
     - [Private Chat](#private-chat)
+    - [Group Chat](#group-chat)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -442,4 +443,8 @@ In summary, Redis enhances the capabilities of Django Channels by providing a ro
 `Chat Group` model is now modified with new fields: `members` and `is_private`. This helps to check if the chat room is private and how many members are in the group. Default value for group_name is now `ShortUUID` value.  
 
 Now the chat groups are listed as dropdown in the home page. You can now have private chatrooms with other people. To start chat, you can visit their profile and just start chat. 
+
+
+### Group Chat
+Anyone can create a group whose link can then be shared to other users if they wish to join. Admin has ability to remove the members, delete the chat group and rename the group. Members can also leave the chat if wanted.
 

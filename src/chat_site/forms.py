@@ -18,3 +18,20 @@ class ChatMessageCreateForm(ModelForm):
                 }
             )
         }
+
+
+class NewGroupForm(ModelForm):
+    class Meta:
+        model = ChatGroup
+        fields = ["groupchat_name"]
+        widgets = {
+            "groupchat_name": forms.TextInput(
+                attrs={
+                    "placeholder": "Enter chat name",
+                    "class": "p-4 text-black",
+                    "maxlength": "120",
+                    "autofocus": True,
+                    "required": True,
+                }
+            )
+        }

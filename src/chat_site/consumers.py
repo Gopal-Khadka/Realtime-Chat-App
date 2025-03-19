@@ -33,6 +33,10 @@ class ChatroomConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(
             self.chatroom_name, self.channel_name
         )
+        # Update online users value
+        if self.user not in self.chatroom.users_online.all():
+            self.chatroom.users_online.add(self.user)
+            self.update_online_count()
         self.accept()  # Accept the WebSocket connection
 
     def receive(self, text_data=None, bytes_data=None):
@@ -92,3 +96,23 @@ class ChatroomConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(
             self.chatroom_name, self.channel_name
         )  # Remove the user from the chatroom group
+
+        if self.user in self.chatroom.users_online.all():
+            self.chatroom.users_online.remove(self.user)
+            self.update_online_count()
+
+    def update_online_count(self):
+        online_count = self.chatroom.users_online.count() - 1
+        # event is message sent back to the browser
+        event = {
+            "type": "online_count_handler",  # function to handle event
+            "online_count": online_count,
+        }
+        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
+
+    def online_count_handler(self, event):
+        online_count = event["online_count"]
+        html = render_to_string(
+            "chat_site/partials/online_count.html", {"online_count": online_count}
+        )
+        self.send(text_data=html)

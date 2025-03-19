@@ -23,6 +23,7 @@
         - [Key Points about Channel Layers:](#key-points-about-channel-layers)
       - [Summary of Differences](#summary-of-differences)
       - [Example Scenario](#example-scenario)
+    - [Tracking Online People in Channels Layer](#tracking-online-people-in-channels-layer)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -258,3 +259,9 @@ Consider a chat application:
 In summary, [channels](https://channels.readthedocs.io/en/latest/introduction.html#turtles-all-the-way-down) are the *individual* pathways for message passing, while [channel layers](https://channels.readthedocs.io/en/latest/topics/channel_layers.html#) provide the infrastructure to enable those channels to communicate across different instances of your application.
 
 **Note:** Channel layers is asynchronous code which needs the usage of `async/await` keyword and must inherit from `AsyncWebSocket` class. To avoid this, we can use `asgiref.sync.async_to_sync` method.
+
+### Tracking Online People in Channels Layer
+
+To do this, we have to count how many channels are there in channel layer. As we are using `in-built channel layer` (for now), we can't do this directly with channels layer object unfortunately.
+
+So without using `Redis`, we would have to do it manually in `consumers.py`. So we add new field `users_online` in `ChatGroup` model to track them.

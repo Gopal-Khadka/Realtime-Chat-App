@@ -35,6 +35,7 @@
       - [Key Features of Redis in Django Channels](#key-features-of-redis-in-django-channels)
       - [Use Cases](#use-cases)
       - [Alternatives of Redis](#alternatives-of-redis)
+    - [Private Chat](#private-chat)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -431,7 +432,14 @@ In summary, Redis enhances the capabilities of Django Channels by providing a ro
 #### Alternatives of Redis
 1. **Valkey**: an open-source fork of Redis that has gained traction due to its backing by major tech companies and the Linux Foundation. It boasts enhanced performance through multi-threading for both input/output and command execution, achieving impressive throughput levels. With features like experimental Remote Direct Memory Access (RDMA) support, Valkey aims to significantly boost query performance and reduce latency, making it a compelling choice for developers seeking a robust alternative to Redis.
 
-2. KeyDB: a multi-threaded fork of Redis designed for high performance and scalability. It can handle over 1 million operations per second on a single node, making it suitable for demanding applications. KeyDB supports advanced features such as Active Replica and Multi-Master modes, which enhance data availability and reliability. Its compatibility with Redis commands facilitates easier migration for users transitioning from Redis, positioning KeyDB as a strong contender in the in-memory database landscape.
+2. **KeyDB**: a multi-threaded fork of Redis designed for high performance and scalability. It can handle over 1 million operations per second on a single node, making it suitable for demanding applications. KeyDB supports advanced features such as Active Replica and Multi-Master modes, which enhance data availability and reliability. Its compatibility with Redis commands facilitates easier migration for users transitioning from Redis, positioning KeyDB as a strong contender in the in-memory database landscape.
 
 
-3. Garnet: an open-source cache store developed by Microsoft Research, aimed at providing high performance for modern applications. It is designed to deliver superior throughput and low latency, making it ideal for applications with demanding data access requirements. Garnet maintains full compatibility with existing Redis clients and commands, allowing for seamless integration. Although still in its early stages, the support from Microsoft suggests a promising future for Garnet as a viable alternative to Redis.
+3. **Garnet**: an open-source cache store developed by Microsoft Research, aimed at providing high performance for modern applications. It is designed to deliver superior throughput and low latency, making it ideal for applications with demanding data access requirements. Garnet maintains full compatibility with existing Redis clients and commands, allowing for seamless integration. Although still in its early stages, the support from Microsoft suggests a promising future for Garnet as a viable alternative to Redis.
+
+
+### Private Chat
+`Chat Group` model is now modified with new fields: `members` and `is_private`. This helps to check if the chat room is private and how many members are in the group. Default value for group_name is now `ShortUUID` value.  
+
+Now the chat groups are listed as dropdown in the home page. You can now have private chatrooms with other people. To start chat, you can visit their profile and just start chat. 
+

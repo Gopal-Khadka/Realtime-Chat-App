@@ -13,31 +13,15 @@ User = get_user_model()
 def chat_view(request: HttpRequest, chatroom_name="public-chat"):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     chat_messages = chat_group.chat_messages.order_by("created")[:30]
-
     form = ChatMessageCreateForm()
-    other_user = None  # for private chat to show info
+    other_user = get_other_user(request.user, chat_group)
 
-    if chat_group.is_private:
-        if request.user not in chat_group.members.all():
-            raise Http404("You are not the member of this chat group.")
-        for member in chat_group.members.all():
-            if member != request.user:
-                other_user = member
-                break
+    # Add user to chat group if not already a member
+    add_user_to_chat_group(request.user, chat_group)
 
+    # Handle message saving if HTMX request
     if request.htmx:
-        form = ChatMessageCreateForm(request.POST)
-        if form.is_valid():
-            # before saving msg, we need to add author and chatgroup value to it
-            # So commit = False
-            message = form.save(commit=False)
-            message.author = request.user
-            message.group = chat_group
-            message.save()
-            context = {"message": message, "user": request.user}
-            return render(
-                request, "chat_site/partials/chat_message_p.html", context=context
-            )
+        return handle_htmx_message(request, form, chat_group)
 
     context = {
         "chat_messages": chat_messages,
@@ -48,6 +32,41 @@ def chat_view(request: HttpRequest, chatroom_name="public-chat"):
     }
 
     return render(request, "chat_site/chat.html", context)
+
+
+def get_other_user(current_user, chat_group):
+    """Return the other user in a private chat group."""
+    if chat_group.is_private:
+        if current_user not in chat_group.members.all():
+            raise Http404("You are not a member of this chat group.")
+        return next(
+            (member for member in chat_group.members.all() if member != current_user),
+            None,
+        )
+    return None
+
+
+def add_user_to_chat_group(user, chat_group):
+    """Add user to the chat group if not already a member."""
+    if chat_group.groupchat_name and user not in chat_group.members.all():
+        chat_group.members.add(user)
+
+
+def handle_htmx_message(request, form, chat_group):
+    """Handle the message creation for HTMX requests."""
+    form = ChatMessageCreateForm(request.POST)
+    if form.is_valid():
+        message = form.save(commit=False)
+        message.author = request.user
+        message.group = chat_group
+        message.save()
+        context = {"message": message, "user": request.user}
+        return render(
+            request, "chat_site/partials/chat_message_p.html", context=context
+        )
+    return render(
+        request, "chat_site/chat.html", {"form": form}
+    )  # Return form errors if invalid
 
 
 @login_required

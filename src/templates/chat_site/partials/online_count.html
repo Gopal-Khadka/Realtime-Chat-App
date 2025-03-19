@@ -36,11 +36,21 @@
       href="{% url 'profile' member.username %}"
       class="flex flex-col text-gray-400 items-center justify-center w-20 gap-2"
     >
+    <div class="relative">
+      {% if member in chat_group.users_online.all %}
+
+        <div class="rounded-full p-1 5 border-2 border-gray-800 absolute bottom-0 right-0 bg-gray-500"></div>
+      {% else %}
+        <div class="rounded-full p-1 5 border-2 border-green-800 absolute bottom-0 right-0 bg-green-500"></div>
+        {% endif %}
+    
       <img
         src="{{ member.profile.avatar }}"
         class="w-14 h-14 rounded-full object-cover"
       />
+    </div>
       {{ member.profile.name|slice:":10" }}
+
     </a>
   </li>
   {% endfor %}

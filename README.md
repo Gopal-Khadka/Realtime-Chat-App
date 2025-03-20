@@ -448,3 +448,9 @@ Now the chat groups are listed as dropdown in the home page. You can now have pr
 ### Group Chat
 Anyone can create a group whose link can then be shared to other users if they wish to join. Admin has ability to remove the members, delete the chat group and rename the group. Members can also leave the chat if wanted.
 
+- Admin can update name, remove users and delete chat room using `edit` button.
+- Link can be shared to join the group for new members.
+- Members are shown online status using green/gray dot alongside respective avatar.
+- Users can leave the chatroom using `leave` option.
+- Added `UserChannel` model for mapping `Member/User` to `ChatGroup` and store `Channel Name`.
+- Create views for `delete`, `edit` and `leave` group.

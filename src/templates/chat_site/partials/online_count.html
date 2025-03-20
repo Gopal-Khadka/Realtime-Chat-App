@@ -37,7 +37,7 @@
       class="flex flex-col text-gray-400 items-center justify-center w-20 gap-2"
     >
     <div class="relative">
-      {% if member in chat_group.users_online.all %}
+      {% if member not in chat_group.users_online.all %}
 
         <div class="rounded-full p-1 5 border-2 border-gray-800 absolute bottom-0 right-0 bg-gray-500"></div>
       {% else %}

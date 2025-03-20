@@ -42,3 +42,14 @@ class GroupMessage(models.Model):
 
     class Meta:
         ordering = ["-created"]
+
+
+class UserChannel(models.Model):
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(
+        ChatGroup, on_delete=models.CASCADE, null=True, blank=True
+    )
+    channel = models.CharField(max_length=300) # in-memory channel name filled by consumers.connect
+
+    def __str__(self):
+        return self.channel

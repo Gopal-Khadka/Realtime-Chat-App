@@ -1,10 +1,13 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, Http404
 
-from .models import ChatGroup
-from .forms import ChatMessageCreateForm, NewGroupForm
+from .models import ChatGroup, UserChannel
+from .forms import ChatMessageCreateForm, NewGroupForm, ChatRoomEditForm
 
 User = get_user_model()
 
@@ -17,7 +20,9 @@ def chat_view(request: HttpRequest, chatroom_name="public-chat"):
     other_user = get_other_user(request.user, chat_group)
 
     # Add user to chat group if not already a member
-    add_user_to_chat_group(request.user, chat_group)
+    is_user_added = add_user_to_chat_group(request, chat_group)
+    if is_user_added is False:
+        return redirect("profile-settings")
 
     # Handle message saving if HTMX request
     if request.htmx:
@@ -46,10 +51,18 @@ def get_other_user(current_user, chat_group):
     return None
 
 
-def add_user_to_chat_group(user, chat_group):
-    """Add user to the chat group if not already a member."""
-    if chat_group.groupchat_name and user not in chat_group.members.all():
-        chat_group.members.add(user)
+def add_user_to_chat_group(request: HttpRequest, chat_group: ChatGroup):
+    """
+    Add user to the chat group if not already a member.
+    Checks if the email is verified or not.
+    Non-verified members can't join chat.
+    """
+    if chat_group.groupchat_name and request.user not in chat_group.members.all():
+        if request.user.emailaddress_set.filter(verified=True).exists():
+            chat_group.members.add(request.user)
+            return True
+        messages.warning(request, "You need to verify your email first to join in.")
+        return False
 
 
 def handle_htmx_message(request, form, chat_group):
@@ -99,3 +112,65 @@ def create_groupchat(request: HttpRequest):
             new_groupchat.members.add(request.user)
             return redirect("chatroom", new_groupchat.group_name)
     return render(request, "chat_site/create_groupchat.html", {"form": form})
+
+
+@login_required
+def chatroom_edit_view(request: HttpRequest, chatroom_name: str):
+    chatgroup = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    if chatgroup.admin != request.user:
+        messages.warning(request, "You need to be admin of chat to access this feature")
+        raise Http404("You need to be admin of chat to access this feature")
+
+    form = ChatRoomEditForm(instance=chatgroup)
+
+    if request.method == "POST":
+        form = ChatRoomEditForm(request.POST, instance=chatgroup)
+        if form.is_valid():
+            form.save()
+
+            remove_members = request.POST.getlist("remove_members")
+            for member_id in remove_members:
+                channel_layer = get_channel_layer()
+                member = User.objects.get(id=member_id)
+                user_channels = UserChannel.objects.filter(
+                    member=member, group=chatgroup
+                )
+                for user_channel in user_channels:
+                    async_to_sync(channel_layer.group_discard)(
+                        chatroom_name, user_channel.channel
+                    )
+                    user_channel.delete()
+                chatgroup.members.remove(member)
+
+            return redirect("chatroom", chatroom_name)
+    context = {
+        "form": form,
+        "chat_group": chatgroup,
+    }
+    return render(request, "chat_site/chatroom_edit.html", context)
+
+
+@login_required
+def chatroom_delete_view(request: HttpRequest, chatroom_name: str):
+    chatgroup = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    if chatgroup.admin != request.user:
+        raise Http404("You need to be admin of chat to access this feature")
+
+    if request.method == "POST":
+        chatgroup.delete()
+        messages.success(request, "Chatroom deleted.")
+        return redirect("chat_home")
+    return render(request, "chat_site/chatroom_delete.html", {"chat_group": chatgroup})
+
+
+@login_required
+def chatroom_leave_view(request: HttpRequest, chatroom_name: str):
+    chatgroup = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    if request.user not in chatgroup.members.all():
+        raise Http404("You need to be member of chat to leave the chat.")
+
+    if request.method == "POST":
+        chatgroup.members.remove(request.user)
+        messages.success(request, "You are now out of the chat room .")
+        return redirect("chat_home")
+    return render(request, "chat_site/chatroom_leave.html", {"chat_group": chatgroup})

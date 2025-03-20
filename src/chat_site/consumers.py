@@ -4,7 +4,7 @@ from channels.generic.websocket import WebsocketConsumer
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 
-from .models import ChatGroup, GroupMessage
+from .models import ChatGroup, GroupMessage, UserChannel
 
 
 class ChatroomConsumer(WebsocketConsumer):
@@ -33,6 +33,11 @@ class ChatroomConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(
             self.chatroom_name, self.channel_name
         )
+
+        if self.chatroom.groupchat_name:
+            UserChannel.objects.get_or_create(
+                member=self.user, group=self.chatroom, channel=self.channel_name
+            )
         # Update online users value
         if self.user not in self.chatroom.users_online.all():
             self.chatroom.users_online.add(self.user)
@@ -96,6 +101,9 @@ class ChatroomConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(
             self.chatroom_name, self.channel_name
         )  # Remove the user from the chatroom group
+
+        user_channel = UserChannel.objects.get(channel=self.channel_name)
+        user_channel.delete()
 
         if self.user in self.chatroom.users_online.all():
             self.chatroom.users_online.remove(self.user)

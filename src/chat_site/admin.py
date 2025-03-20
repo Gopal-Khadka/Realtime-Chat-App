@@ -1,12 +1,18 @@
 from django.contrib import admin
 
-from .models import ChatGroup, GroupMessage
+from .models import ChatGroup, GroupMessage, UserChannel
 
 
 @admin.register(ChatGroup)
 class ChatGroupAdmin(admin.ModelAdmin):
-    list_display = ("admin", "groupchat_name", "is_private", "members_count","online_count")
-    filter_horizontal=["users_online","members"]
+    list_display = (
+        "admin",
+        "groupchat_name",
+        "is_private",
+        "members_count",
+        "online_count",
+    )
+    filter_horizontal = ["users_online", "members"]
     list_filter = ("admin", "is_private")
 
 
@@ -14,3 +20,6 @@ class ChatGroupAdmin(admin.ModelAdmin):
 class GroupMessageAdmin(admin.ModelAdmin):
     list_display = ("author", "group", "created")
     list_filter = ("author", "group")
+
+
+admin.site.register(UserChannel)

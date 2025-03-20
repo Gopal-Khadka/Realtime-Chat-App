@@ -1,7 +1,13 @@
 {% extends "layouts/blank.html" %} {% block content %}
 <wrapper class="block max-w-2xl mx-auto my-10 px-6">
   {% if chat_group.groupchat_name %}
+  <div class="flex justify-between">
+
     <h2>{{chat_group.groupchat_name }} </h2>
+        {% if user == chat_group.admin %}
+          <a href="{% url "edit-chatroom" chat_group.group_name %}" class="button">Edit</a>
+        {% endif %}
+  </div>
   {% endif %}
   <div
     id="chat_window"
@@ -60,7 +66,11 @@
     </div>
   </div>
 
- 
+  {% if chat_group.members.exists %}
+  <a href="{% url 'chatroom-leave' chat_group.group_name %}">
+      Leave Chat
+  </a>
+  {% endif %}
 </wrapper>
 
 <script>

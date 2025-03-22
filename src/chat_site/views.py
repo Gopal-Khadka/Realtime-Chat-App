@@ -4,9 +4,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, Http404
+from django.http import HttpRequest, Http404, HttpResponse
 
-from .models import ChatGroup, UserChannel
+from .models import ChatGroup, UserChannel, GroupMessage
 from .forms import ChatMessageCreateForm, NewGroupForm, ChatRoomEditForm
 
 User = get_user_model()
@@ -14,8 +14,8 @@ User = get_user_model()
 
 @login_required
 def chat_view(request: HttpRequest, chatroom_name="public-chat"):
-    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
-    chat_messages = chat_group.chat_messages.order_by("created")[:30]
+    chat_group:list[ChatGroup] = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    chat_messages = chat_group.chat_messages.all()[:40:-1]
     form = ChatMessageCreateForm()
     other_user = get_other_user(request.user, chat_group)
 
@@ -174,3 +174,23 @@ def chatroom_leave_view(request: HttpRequest, chatroom_name: str):
         messages.success(request, "You are now out of the chat room .")
         return redirect("chat_home")
     return render(request, "chat_site/chatroom_leave.html", {"chat_group": chatgroup})
+
+
+@login_required
+def chat_file_upload(request: HttpRequest, chatroom_name: str):
+    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if request.htmx and request.FILES:
+        file = request.FILES["file"]
+        message = GroupMessage.objects.create(
+            file=file, author=request.user, group=chat_group
+        )
+
+        channel_layer = get_channel_layer()
+        event = {
+            "type": "message_handler",
+            "message": message,
+        }
+
+        async_to_sync(channel_layer.group_send)(chatroom_name, event)
+    return HttpResponse()

@@ -38,6 +38,7 @@
     - [Private Chat](#private-chat)
     - [Group Chat](#group-chat)
     - [Live Activity Monitoring](#live-activity-monitoring)
+    - [File Uploads](#file-uploads)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -459,3 +460,14 @@ Anyone can create a group whose link can then be shared to other users if they w
 
 ### Live Activity Monitoring
 If any member is active in any of common chat groups or private chats, we must be able to see the green status on the respective dropdown item.  
+
+
+
+### File Uploads
+Users should be able to send images, pdf, gif , png or any other files.
+- If it is image, it is rendered.
+- Otherwise, you can download it.  
+
+
+Model `GroupMessage` can either have `body` ir `file`. If `file` is sent, `body` is set to `None`.  
+Files are uploaded to `media` folder in the project unless configured otherwise.

@@ -1,0 +1,7 @@
+{% if message.body %}
+<span>{{message.body}}</span>
+{% elif message.is_image %}
+<img src="{{message.file.url}}" alt="{{message.filename}}" />
+{% else %}
+&#x1F4CE; <a href="{{message.file.url}}" class="cursor-pointer italic hover:underline" target="_blank" download>{{message.filename}}</a>
+{% endif %}

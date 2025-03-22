@@ -112,15 +112,6 @@ class ChatroomConsumer(WebsocketConsumer):
             self.chatroom.users_online.remove(self.user)
             self.update_online_count()
 
-    def update_online_count(self):
-        online_count = self.chatroom.users_online.count() - 1
-        # event is message sent back to the browser
-        event = {
-            "type": "online_count_handler",  # function to handle event
-            "online_count": online_count,
-        }
-        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
-
     def online_count_handler(self, event):
         online_count = event["online_count"]
         context = {
@@ -129,6 +120,15 @@ class ChatroomConsumer(WebsocketConsumer):
         }
         html = render_to_string("chat_site/partials/online_count.html", context)
         self.send(text_data=html)
+
+    def update_online_count(self):
+        online_count = self.chatroom.users_online.count() - 1
+        # event is message sent back to the browser
+        event = {
+            "type": "online_count_handler",  # function to handle event
+            "online_count": online_count,
+        }
+        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
 
 
 class OnlineStatusConsumer(WebsocketConsumer):
@@ -144,17 +144,33 @@ class OnlineStatusConsumer(WebsocketConsumer):
         self.accept()
         self.online_status()
 
-    def online_status(self):
-        event = {"type": "online_status_handler"}
-        async_to_sync(self.channel_layer.group_send)(self.group_name, event)
-
     def online_status_handler(self, event):
         online_users = self.group.users_online.exclude(id=self.user.id)
-        context = {"online_users": online_users}
+        public_chat_users = ChatGroup.objects.get(
+            group_name="public-chat"
+        ).users_online.exclude(id=self.user.id)
+
+        online_in_chats = False
+
+        my_chats: list[ChatGroup] = self.user.chat_groups.all()
+        private_chats_with_users = [
+            chat
+            for chat in my_chats
+            if chat.users_online.exclude(id=self.user.id).exists()
+        ]
+
+        if public_chat_users or private_chats_with_users:
+            online_in_chats = True
+
+        context = {"online_users": online_users, "online_in_chats": online_in_chats}
         html = render_to_string(
             "chat_site/partials/online_status.html", context=context
         )
         self.send(text_data=html)
+
+    def online_status(self):
+        event = {"type": "online_status_handler"}
+        async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def disconnect(self, code):
         if self.user in self.group.users_online.all():
@@ -163,3 +179,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
             self.group_name, self.channel_name
         )
         self.online_status()
+
+    def receive(self, text_data=None, bytes_data=None):
+        # Handle unexpected message types
+        print("Received message:", text_data)

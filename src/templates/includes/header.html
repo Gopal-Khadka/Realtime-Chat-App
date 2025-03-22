@@ -14,7 +14,8 @@
         <ul class="navitems flex items-center justify-center h-full">
             {% if request.user.is_authenticated %}
             <li x-data="{ dropdownOpen: false }" class="relative">
-                <a @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="cursor-pointer select-none" hx-ext="ws" ws-connect="/ws/online-status/">
+                <a @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="cursor-pointer select-none" >
+                    <div id="online-in-chats"></div>
                     Chat Groups
                     <img x-bind:class="dropdownOpen && 'rotate-180 duration-300'" class="w-4" src="https://img.icons8.com/small/32/ffffff/expand-arrow.png" alt="Dropdown" />
                 </a>

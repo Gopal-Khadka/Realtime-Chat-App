@@ -37,6 +37,7 @@
       - [Alternatives of Redis](#alternatives-of-redis)
     - [Private Chat](#private-chat)
     - [Group Chat](#group-chat)
+    - [Live Activity Monitoring](#live-activity-monitoring)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -454,3 +455,7 @@ Anyone can create a group whose link can then be shared to other users if they w
 - Users can leave the chatroom using `leave` option.
 - Added `UserChannel` model for mapping `Member/User` to `ChatGroup` and store `Channel Name`.
 - Create views for `delete`, `edit` and `leave` group.
+
+
+### Live Activity Monitoring
+If any member is active in any of common chat groups or private chats, we must be able to see the green status on the respective dropdown item.  

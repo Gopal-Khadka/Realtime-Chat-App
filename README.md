@@ -39,6 +39,7 @@
     - [Group Chat](#group-chat)
     - [Live Activity Monitoring](#live-activity-monitoring)
     - [File Uploads](#file-uploads)
+  - [Note for local demo](#note-for-local-demo)
 
 
 **Link for the starter code:** [GitHub](https://github.com/andyjud/django-starter)
@@ -471,3 +472,11 @@ Users should be able to send images, pdf, gif , png or any other files.
 
 Model `GroupMessage` can either have `body` ir `file`. If `file` is sent, `body` is set to `None`.  
 Files are uploaded to `media` folder in the project unless configured otherwise.
+
+
+## Note for local demo
+- Default admin email is `admin@gmail.com` and password is `admin`.
+- Default user email is `default@gmail.com` and password is `wd2s5pSyLefRxRq`.
+- Few chat groups are already there. So test it out.
+
+To see basic local demo, you can use `example.sqlite3` DB from the repo. To do that, you need to configure `settings.py`.
